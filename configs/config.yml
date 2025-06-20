@@ -1,0 +1,4 @@
+server:
+  bind_port: ":8080"
+  log_level: "debug"
+  statistic_refresh: 62
