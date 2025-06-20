@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"github.com/shirou/gopsutil/v4/process"
 	"sync"
 )
 
@@ -16,6 +17,8 @@ type Metric interface {
 	GetHttpStats() map[int]int
 	IncreaseHttpStat(int, *sync.WaitGroup) error
 	ResetHttpStat(wg *sync.WaitGroup) error
+	GetCpuInfo() []float64
+	GetMemoryInfo() *process.MemoryInfoStat
 }
 
 func MetricsInstance() Metric {

@@ -47,6 +47,8 @@ func (s *server) PrintActualStatistic() {
 		case <-s.ticker.C:
 			// if metrics no data in map  don't record's into logs
 			s.logger.WriteStatisticToLog(s.metric.GetHttpStats())
+			s.logger.WriteCpuInfoToLog(s.metric.GetCpuInfo())
+			s.logger.WriteMemoryInfoToLog(s.metric.GetMemoryInfo())
 
 			wg.Add(1)
 			go func() {
