@@ -6,7 +6,7 @@ import (
 	"log"
 	"os/signal"
 	"syscall"
-	pgk "template/pgk"
+	"template/pgk"
 )
 
 const configPath = "configs/config.yml"

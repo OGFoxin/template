@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var instance *server
+var instance Server
 var once sync.Once
 
 type Server interface {
@@ -33,7 +33,7 @@ func ServerInstance(ctx context.Context) Server {
 	return instance
 }
 
-func NewServer(ctx context.Context) *server {
+func NewServer(ctx context.Context) Server {
 	return &server{
 		logger: logger.LoggerInstance(),
 		metric: metric.NewMetrics(),

@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-var instance *metrics
+var instance Metric
 var once sync.Once
 
 type metrics struct {
@@ -26,7 +26,7 @@ func MetricsInstance() Metric {
 	return instance
 }
 
-func NewMetrics() *metrics {
+func NewMetrics() Metric {
 	return &metrics{v: make(map[int]int)}
 }
 

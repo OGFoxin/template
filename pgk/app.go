@@ -3,9 +3,9 @@ package pgk
 import (
 	"context"
 	"log"
-	app "template/internal/app"
-	metric "template/internal/metric"
-	logger "template/pgk/logger"
+	"template/internal/app"
+	"template/internal/metric"
+	"template/pgk/logger"
 	"time"
 )
 
