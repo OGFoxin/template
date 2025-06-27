@@ -14,27 +14,31 @@ var instance Server
 var once sync.Once
 
 type Server interface {
-	RunServer(context.Context, string, time.Duration) error
+	RunServer(context.Context) error
 	createRouters(*gin.Engine) error
 	PrintActualStatistic()
+	applyConfiguration()
+	setupGinInstance() *gin.Engine
 }
 
 type server struct {
 	logger logger.Logger
 	metric metric.Metric
 	ticker time.Ticker
+	config *Config
 }
 
-func ServerInstance(ctx context.Context) Server {
+func ServerInstance(ctx context.Context, configPath string) Server {
 	once.Do(func() {
-		instance = NewServer(ctx)
+		instance = NewServer(ctx, configPath)
 	})
 
 	return instance
 }
 
-func NewServer(ctx context.Context) Server {
+func NewServer(ctx context.Context, configPath string) Server {
 	return &server{
+		config: NewConfig(configPath),
 		logger: logger.LoggerInstance(),
 		metric: metric.NewMetrics(),
 	}
@@ -63,7 +67,17 @@ func (s *server) PrintActualStatistic() {
 
 }
 
-func (s *server) RunServer(srvCtx context.Context, bindPort string, refreshTicker time.Duration) error {
+func (s *server) applyConfiguration() {
+	s.ticker = *time.NewTicker(time.Duration(s.config.Server.StatisticRefresh) * time.Second)
+
+	if err := s.logger.SetLogLevel(s.config.Server.LogLevel); err != nil {
+		log.Fatal(err)
+	}
+
+	s.logger.Write("Configuration updated successfully")
+}
+
+func (s *server) setupGinInstance() *gin.Engine {
 	// ** GIN configuration ** //
 	// set release mode
 	gin.SetMode(gin.ReleaseMode)
@@ -71,14 +85,7 @@ func (s *server) RunServer(srvCtx context.Context, bindPort string, refreshTicke
 	ginRouter := gin.New()
 	gin.DisableConsoleColor()
 
-	if refreshTicker == 0 {
-		s.logger.Write("Timeout not defined, default value 60 seconds")
-		refreshTicker = 60
-	}
-
-	s.ticker = *time.NewTicker(refreshTicker * time.Second)
-	// additional GIN log to FILE
-	if s.logger.GetLogLevel() == "debug" {
+	if s.config.Server.UseGin {
 		gin.DefaultWriter = s.logger.GetLogFile()
 		ginRouter.Use(
 			gin.Logger(),
@@ -89,6 +96,26 @@ func (s *server) RunServer(srvCtx context.Context, bindPort string, refreshTicke
 		gin.Recovery(),
 	)
 
+	return ginRouter
+}
+
+func (s *server) RunServer(srvCtx context.Context) error {
+	ginRouter := s.setupGinInstance()
+	s.ticker = *time.NewTicker(time.Duration(s.config.Server.StatisticRefresh) * time.Second)
+	if err := s.logger.SetLogLevel(s.config.Server.LogLevel); err != nil {
+		return err
+	}
+
+	go func() {
+		var err error
+		for {
+			if s.config, err = s.config.Watchdog("configs/config.yml"); err != nil {
+				s.logger.Write("Cant reload config file", err)
+			}
+			s.applyConfiguration()
+		}
+	}()
+
 	s.logger.Write("Application waked up")
 
 	go func() {
@@ -98,7 +125,7 @@ func (s *server) RunServer(srvCtx context.Context, bindPort string, refreshTicke
 	}()
 
 	go func() {
-		if err := ginRouter.Run(bindPort); err != nil {
+		if err := ginRouter.Run(s.config.Server.BindPort); err != nil {
 			panic(err)
 		}
 	}()

@@ -3,6 +3,7 @@ module template
 go 1.23.9
 
 require (
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/shirou/gopsutil/v4 v4.25.5
 	gopkg.in/yaml.v3 v3.0.1

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ type Config struct {
 		BindPort         string `yaml:"bind_port"`
 		LogLevel         string `yaml:"log_level"`
 		StatisticRefresh int    `yaml:"statistic_refresh"`
+		UseGin           bool   `yaml:"use_gin"`
 	}
 }
 
@@ -34,5 +36,26 @@ func NewConfig(configPath string) *Config {
 	}
 
 	return actualConfig
+
+}
+
+func (cfg *Config) Watchdog(config string) (*Config, error) {
+	watcher, err := fsnotify.NewWatcher()
+	defer watcher.Close()
+
+	if err = watcher.Add(config); err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		select {
+		case event := <-watcher.Events:
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				return cfg.getConfig(config)
+			}
+		case err := <-watcher.Errors:
+			return nil, err
+		}
+	}
 
 }

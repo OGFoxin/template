@@ -1,4 +1,5 @@
 server:
   bind_port: ":8080"
-  log_level: "debug"
-  statistic_refresh: 62
+  log_level: "info"
+  use_gin: true
+  statistic_refresh: 60
