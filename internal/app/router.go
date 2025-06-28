@@ -15,7 +15,7 @@ func (s *server) createRouters(router *gin.Engine) error {
 	}
 
 	wg := sync.WaitGroup{}
-	router.GET("/healtCheck", func(c *gin.Context) {
+	router.GET("/healthCheck", func(c *gin.Context) {
 		wg.Add(1)
 		go func() {
 			if err := s.metric.IncreaseHttpStat(http.StatusOK, &wg); err != nil {
@@ -27,6 +27,46 @@ func (s *server) createRouters(router *gin.Engine) error {
 			"message": "alive",
 		})
 		wg.Wait()
+	})
+
+	router.GET("/getHttpStat", func(c *gin.Context) {
+		ch := make(chan map[int]int)
+		go func() {
+			ch <- s.metric.GetHttpStats()
+		}()
+
+		c.JSON(http.StatusOK, gin.H{
+			"httpStats": <-ch,
+		})
+
+		close(ch)
+	})
+
+	router.GET("/getCpuStat", func(c *gin.Context) {
+		ch := make(chan []float64)
+		go func() {
+			ch <- s.metric.GetCpuInfo()
+		}()
+
+		c.JSON(http.StatusOK, gin.H{
+			"cpuStats": <-ch,
+		})
+
+		close(ch)
+	})
+
+	router.GET("/getMemoryStat", func(c *gin.Context) {
+		ch := make(chan interface{})
+
+		go func() {
+			ch <- s.metric.GetMemoryInfo()
+		}()
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": <-ch,
+		})
+
+		close(ch)
 	})
 
 	router.NoRoute(func(c *gin.Context) {
